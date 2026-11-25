@@ -17,14 +17,18 @@
       "import": "./dist/shiki.js"
     },
     "./styles.css": "./src/styles/base.css",
-    "./themes/*": "./src/styles/themes/*"
+    "./themes/*": "./src/styles/themes/*",
+    "./diffs": {
+      "types": "./dist/diffs.d.ts",
+      "import": "./dist/diffs.js"
+    }
   },
   "files": [
     "dist",
     "src/styles"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/shiki.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/shiki.ts src/diffs.ts --format esm --dts --clean",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p ."
   },
@@ -33,6 +37,7 @@
     "marked": "^18.3.0"
   },
   "devDependencies": {
+    "@pierre/diffs": "^1.7.1",
     "@types/hyphen": "^1.14.0",
     "jsdom": "^31.0.1",
     "shiki": "^4.6.0",
@@ -41,6 +46,15 @@
     "vitest": "^5.1.2"
   },
   "peerDependencies": {
-    "shiki": "^4.6.0"
+    "shiki": "^4.6.0",
+    "@pierre/diffs": "^1.7.1"
+  },
+  "peerDependenciesMeta": {
+    "shiki": {
+      "optional": true
+    },
+    "@pierre/diffs": {
+      "optional": true
+    }
   }
 }

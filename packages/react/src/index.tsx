@@ -35,7 +35,7 @@ const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayout
  * ```
  */
 export const Output = forwardRef<OutputHandle | null, OutputProps>(function Output(
-  { source, streaming = false, scheme = "auto", className, style, onDone, theme, justify, hyphenate, highlight, lang, minJustifyWidth },
+  { source, streaming = false, scheme = "auto", className, style, onDone, theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth },
   ref,
 ) {
   const elementRef = useRef<HTMLDivElement>(null);
@@ -44,7 +44,7 @@ export const Output = forwardRef<OutputHandle | null, OutputProps>(function Outp
   onDoneRef.current = onDone;
 
   useIsoLayoutEffect(() => {
-    const handle = createOutput(elementRef.current!, { theme, justify, hyphenate, highlight, lang, minJustifyWidth });
+    const handle = createOutput(elementRef.current!, { theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth });
     handleRef.current = handle;
     return () => {
       handle.destroy();
@@ -58,8 +58,8 @@ export const Output = forwardRef<OutputHandle | null, OutputProps>(function Outp
   useImperativeHandle(ref, () => handleRef.current!, []);
 
   useIsoLayoutEffect(() => {
-    handleRef.current?.update({ theme, justify, hyphenate, highlight, lang, minJustifyWidth });
-  }, [theme, justify, hyphenate, highlight, lang, minJustifyWidth]);
+    handleRef.current?.update({ theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth });
+  }, [theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth]);
 
   // String sources: diff against what's already rendered.
   useIsoLayoutEffect(() => {
@@ -118,3 +118,7 @@ async function* readStream(stream: ReadableStream<string>): AsyncIterable<string
     reader.releaseLock();
   }
 }
+
+export { Turn, type TurnProps, type TurnComponents } from "./turn";
+export { ToolCall, Reasoning, Diff, type ToolCallProps, type ReasoningProps, type DiffProps } from "./views";
+export type { Part, TextPart, ReasoningPart, ToolPart, DiffPart, DiffInput, DiffRenderer } from "@output/core";

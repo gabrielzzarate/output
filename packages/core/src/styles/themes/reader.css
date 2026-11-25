@@ -1,5 +1,5 @@
 /* Reader: book-like serif prose, generous leading, justified paragraphs. */
-.ov-output[data-ov-theme="reader"] {
+:is(.ov-output, .ov-turn)[data-ov-theme="reader"] {
   --ov-font-prose: "Literata Variable", "Literata", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --ov-size: 1.0625rem;
   --ov-leading: 1.65;

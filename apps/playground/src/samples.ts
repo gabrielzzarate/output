@@ -72,6 +72,31 @@ export async function retry<T>(fn: () => Promise<T>, state: RetryState): Promise
 }
 \`\`\`
 
+Here is the same change as a diff:
+
+\`\`\`diff
+--- a/src/net/retry.ts
++++ b/src/net/retry.ts
+@@ -1,9 +1,15 @@
++function nextBackoff(state: RetryState): number {
++  state.backoff = Math.min(state.backoff * 2, state.maxBackoff);
++  return state.backoff + Math.random() * state.jitter;
++}
++
+ export async function retry<T>(fn: () => Promise<T>, state: RetryState): Promise<T> {
+   try {
+     return await fn();
+   } catch (error) {
+-    const delay = state.backoff * 2;
+-    await sleep(delay);
+-    state.backoff = delay;
++    if (++state.attempts > state.maxAttempts) throw error;
++    await sleep(nextBackoff(state));
+     return retry(fn, state);
+   }
+ }
+\`\`\`
+
 I also added a cap and some jitter, since synchronised retries from many clients are the other common cause of thundering-herd failures.
 
 | Scenario | Before | After |
