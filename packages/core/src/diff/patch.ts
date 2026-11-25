@@ -5,25 +5,66 @@ export function isPatch(text: string): boolean {
   return /^@@ -\d+(,\d+)? \+\d+(,\d+)? @@/m.test(text) || (/^--- \S/m.test(text) && /^\+\+\+ \S/m.test(text));
 }
 
+export type PatchLine =
+  | { kind: "file"; side: "old" | "new"; name: string }
+  | { kind: "hunk"; oldStart: number; newStart: number }
+  | { kind: "line"; sign: " " | "+" | "-"; text: string };
+
+/**
+ * Reads a unified patch line by line. `---` and `+++` count as file headers
+ * only between hunks: inside a hunk, the header's line counts decide where
+ * it ends, so a removed line that reads "-- comment" stays a removed line.
+ */
+export function* readPatch(patch: string): Generator<PatchLine> {
+  let oldLeft = 0;
+  let newLeft = 0;
+  for (const line of patch.replace(/\n$/, "").split("\n")) {
+    if (oldLeft > 0 || newLeft > 0) {
+      const sign = line[0];
+      if (sign === "\\") continue;
+      if (sign === "+") newLeft--;
+      else if (sign === "-") oldLeft--;
+      else {
+        oldLeft--;
+        newLeft--;
+      }
+      yield { kind: "line", sign: sign === "+" || sign === "-" ? sign : " ", text: line.slice(1) };
+      continue;
+    }
+    const hunk = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line);
+    if (hunk) {
+      oldLeft = hunk[2] === undefined ? 1 : Number(hunk[2]);
+      newLeft = hunk[4] === undefined ? 1 : Number(hunk[4]);
+      yield { kind: "hunk", oldStart: Number(hunk[1]), newStart: Number(hunk[3]) };
+    } else if (line.startsWith("--- ")) {
+      yield { kind: "file", side: "old", name: line.slice(4).replace(/^a\//, "").replace(/\t.*$/, "").trim() };
+    } else if (line.startsWith("+++ ")) {
+      yield { kind: "file", side: "new", name: line.slice(4).replace(/^b\//, "").replace(/\t.*$/, "").trim() };
+    }
+  }
+}
+
 /** Counts added and removed lines. */
 export function diffStats(input: DiffInput): { additions: number; deletions: number; name: string } {
   if ("patch" in input) {
     let additions = 0;
     let deletions = 0;
-    let name = "";
-    for (const line of input.patch.split("\n")) {
-      if (line.startsWith("+++ ")) name ||= line.slice(4).replace(/^b\//, "").trim();
-      else if (line.startsWith("--- ")) {
-        const prev = line.slice(4).replace(/^a\//, "").trim();
-        if (!name && prev !== "/dev/null") name = prev;
-      } else if (line.startsWith("+")) additions++;
-      else if (line.startsWith("-")) deletions++;
+    let oldName = "";
+    let newName = "";
+    for (const entry of readPatch(input.patch)) {
+      if (entry.kind === "file") {
+        if (entry.side === "old") oldName ||= entry.name;
+        else newName ||= entry.name;
+      } else if (entry.kind === "line") {
+        if (entry.sign === "+") additions++;
+        else if (entry.sign === "-") deletions++;
+      }
     }
-    return { additions, deletions, name: name === "/dev/null" ? "" : name };
+    const name = newName && newName !== "/dev/null" ? newName : oldName !== "/dev/null" ? oldName : "";
+    return { additions, deletions, name };
   }
-  const oldLines = input.oldFile?.contents ? input.oldFile.contents.split("\n") : [];
-  const newLines = input.newFile?.contents ? input.newFile.contents.split("\n") : [];
-  const { additions, deletions } = lineDiffCounts(oldLines, newLines);
+  const split = (f: { contents: string } | null) => (f?.contents ? trimFinalNewline(f.contents).split("\n") : []);
+  const { additions, deletions } = lineDiffCounts(split(input.oldFile), split(input.newFile));
   return { additions, deletions, name: input.newFile?.name ?? input.oldFile?.name ?? "" };
 }
 

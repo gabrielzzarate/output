@@ -1,5 +1,5 @@
 import { escapeHtml } from "../render/markdown";
-import { toPatch } from "./patch";
+import { readPatch, toPatch } from "./patch";
 import type { DiffInput } from "./types";
 
 /**
@@ -11,21 +11,17 @@ export function renderPlainDiff(input: DiffInput): string {
   let oldLine = 0;
   let newLine = 0;
   const rows: string[] = [];
-  for (const line of patch.replace(/\n$/, "").split("\n")) {
-    if (line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("diff --git") || line.startsWith("index ")) continue;
-    const hunk = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)$/.exec(line);
-    if (hunk) {
-      oldLine = Number(hunk[1]);
-      newLine = Number(hunk[2]);
+  for (const entry of readPatch(patch)) {
+    if (entry.kind === "hunk") {
       if (rows.length) rows.push(`<tr class="ov-diff-sep"><td colspan="3"></td></tr>`);
-      continue;
+      oldLine = entry.oldStart;
+      newLine = entry.newStart;
+    } else if (entry.kind === "line") {
+      const text = escapeHtml(entry.text) || " ";
+      if (entry.sign === "+") rows.push(`<tr class="ov-diff-add"><td class="ov-diff-n"></td><td class="ov-diff-n">${newLine++}</td><td>${text}</td></tr>`);
+      else if (entry.sign === "-") rows.push(`<tr class="ov-diff-del"><td class="ov-diff-n">${oldLine++}</td><td class="ov-diff-n"></td><td>${text}</td></tr>`);
+      else rows.push(`<tr><td class="ov-diff-n">${oldLine++}</td><td class="ov-diff-n">${newLine++}</td><td>${text}</td></tr>`);
     }
-    const sign = line[0];
-    const text = escapeHtml(line.slice(1)) || " ";
-    if (sign === "+") rows.push(`<tr class="ov-diff-add"><td class="ov-diff-n"></td><td class="ov-diff-n">${newLine++}</td><td>${text}</td></tr>`);
-    else if (sign === "-") rows.push(`<tr class="ov-diff-del"><td class="ov-diff-n">${oldLine++}</td><td class="ov-diff-n"></td><td>${text}</td></tr>`);
-    else if (sign === "\\") continue;
-    else rows.push(`<tr><td class="ov-diff-n">${oldLine++}</td><td class="ov-diff-n">${newLine++}</td><td>${text}</td></tr>`);
   }
   return `<div class="ov-diff-plain"><table><tbody>${rows.join("")}</tbody></table></div>`;
 }

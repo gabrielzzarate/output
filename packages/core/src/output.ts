@@ -59,7 +59,8 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
   let pendingChunks = "";
   let pendingEnd = false;
   const pendingWork = new Set<Promise<unknown>>();
-  const diffViews = new Map<HTMLElement, DiffView>();
+  /** Diff views per block, in the order their fences appear in it. */
+  const diffViews = new Map<HTMLElement, DiffView[]>();
   const rawOf = new WeakMap<HTMLElement, string>();
   const liveHtml = new WeakMap<HTMLElement, string>();
 
@@ -118,25 +119,15 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
       const wrapper = live?.id === update.live.id ? live.wrapper : createWrapper(update.live);
       wrapper.dataset.ovType = update.live.type;
       const html = renderLive(update.live);
-      const existing = diffViews.get(wrapper);
-      if (existing && wrapper.contains(existing.element)) {
-        const probe = document.createElement("div");
-        probe.innerHTML = html;
-        const figure = probe.querySelector<HTMLElement>(".ov-code");
-        if (figure) {
-          wrapper.replaceChildren(figure);
-          upgradeDiff(wrapper, figure, false);
-        } else {
-          wrapper.innerHTML = html;
-        }
-      } else if (liveHtml.get(wrapper) !== html) {
+      if (liveHtml.get(wrapper) !== html) {
         liveHtml.set(wrapper, html);
         wrapper.innerHTML = html;
-        const figure = wrapper.querySelector<HTMLElement>(".ov-code");
-        if (figure) upgradeDiff(wrapper, figure, false);
+        upgradeDiffs(wrapper, false);
       }
       live = { wrapper, id: update.live.id };
     } else if (live) {
+      for (const view of diffViews.get(live.wrapper) ?? []) view.destroy();
+      diffViews.delete(live.wrapper);
       live.wrapper.remove();
       live = null;
     }
@@ -176,9 +167,7 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
   }
 
   function enhance(wrapper: HTMLElement) {
-    for (const figure of wrapper.querySelectorAll<HTMLElement>(".ov-code")) {
-      if (upgradeDiff(wrapper, figure, true)) return;
-    }
+    upgradeDiffs(wrapper, true);
     if (opts.highlight) {
       for (const figure of wrapper.querySelectorAll<HTMLElement>(".ov-code")) highlight(figure);
     }
@@ -187,21 +176,28 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
     }
   }
 
-  /** Shows a ```diff fence that holds a real patch as a diff view. */
-  function upgradeDiff(wrapper: HTMLElement, figure: HTMLElement, settled: boolean): boolean {
-    const lang = figure.dataset.ovLang;
-    if (lang !== "diff" && lang !== "patch") return false;
-    const patch = figure.querySelector("code")?.textContent ?? "";
-    if (!isPatch(patch)) return false;
-    let view = diffViews.get(wrapper);
-    if (!view) {
-      view = createDiffView(opts.diff);
-      diffViews.set(wrapper, view);
-    }
-    figure.replaceWith(view.element);
-    view.update({ patch: patch.endsWith("\n") ? patch : patch + "\n" }, { settled });
-    wrapper.dataset.ovType = "diff";
-    return true;
+  /**
+   * Shows every ```diff fence in a block that holds a real patch as a diff
+   * view, reusing the block's existing views so a streaming diff isn't
+   * rebuilt on every frame. Everything else in the block is left as it is.
+   */
+  function upgradeDiffs(wrapper: HTMLElement, settled: boolean) {
+    const figures = [...wrapper.querySelectorAll<HTMLElement>(".ov-code")].filter((figure) => {
+      const lang = figure.dataset.ovLang;
+      return (lang === "diff" || lang === "patch") && isPatch(figure.querySelector("code")?.textContent ?? "");
+    });
+    const views = diffViews.get(wrapper) ?? [];
+    figures.forEach((figure, i) => {
+      const patch = figure.querySelector("code")?.textContent ?? "";
+      const view = (views[i] ??= createDiffView(opts.diff));
+      figure.replaceWith(view.element);
+      view.update({ patch: patch.endsWith("\n") ? patch : patch + "\n" }, { settled });
+    });
+    for (const extra of views.splice(figures.length)) extra.destroy();
+    if (views.length) diffViews.set(wrapper, views);
+    else diffViews.delete(wrapper);
+    // Tag the block as a diff only when the diff is all it holds.
+    if (figures.length === 1 && wrapper.childElementCount === 1) wrapper.dataset.ovType = "diff";
   }
 
   function highlight(figure: HTMLElement) {
@@ -268,7 +264,7 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
         frame = null;
       }
       scheduler.clear();
-      for (const view of diffViews.values()) view.destroy();
+      for (const views of diffViews.values()) for (const view of views) view.destroy();
       diffViews.clear();
       for (const wrapper of blocks) wrapper.remove();
       blocks.length = 0;
@@ -284,16 +280,17 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
       opts = { ...opts, ...next };
       applyRootAttributes();
       if (before.diff !== opts.diff) {
-        for (const [wrapper, view] of diffViews) {
-          view.destroy();
+        // Copy the keys first: re-rendering adds fresh views to the map.
+        for (const wrapper of [...diffViews.keys()]) {
+          for (const view of diffViews.get(wrapper) ?? []) view.destroy();
           diffViews.delete(wrapper);
-          const block = blocks.indexOf(wrapper);
-          if (block !== -1) {
-            const raw = rawOf.get(wrapper);
-            if (raw !== undefined) {
-              wrapper.innerHTML = renderTokens(markdown.lexer(raw));
-              enhance(wrapper);
-            }
+          const raw = rawOf.get(wrapper);
+          if (raw !== undefined) {
+            wrapper.innerHTML = renderTokens(markdown.lexer(raw));
+            enhance(wrapper);
+          } else if (liveHtml.has(wrapper)) {
+            wrapper.innerHTML = liveHtml.get(wrapper)!;
+            upgradeDiffs(wrapper, false);
           }
         }
       }

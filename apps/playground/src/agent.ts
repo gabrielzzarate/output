@@ -72,19 +72,23 @@ export async function playAgentTurn(emit: (parts: Part[], streaming: boolean) =>
       emit([...done, { ...base, text: tokens.slice(0, i).join(""), state: "streaming" } as Part], true);
       await wait(tokenDelay * 2);
     }
+    // Every await above can outlast a Stop, so callers check again too.
   };
 
   await streamText(final[0]!, reasoning);
+  if (signal.cancelled) return;
   done.push({ ...(final[0] as Part), durationMs: undefined } as Part);
   for (const tool of final.slice(1, 4)) {
     if (signal.cancelled) return;
     const t = tool as Extract<Part, { type: "tool" }>;
     emit([...done, { ...t, state: "running", output: undefined, durationMs: undefined }], true);
     await wait(Math.min(t.durationMs ?? 400, 1400) + 300);
+    if (signal.cancelled) return;
     done.push({ ...t, durationMs: undefined });
     emit([...done], true);
     await wait(250);
   }
+  if (signal.cancelled) return;
   await streamText(final[4]!, answer);
   if (signal.cancelled) return;
   done.push(final[4]!);

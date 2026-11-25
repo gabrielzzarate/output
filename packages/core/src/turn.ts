@@ -40,6 +40,8 @@ type Entry =
 export function createTurn(element: HTMLElement, options: TurnOptions = {}): Turn {
   let opts = { ...options };
   const entries = new Map<string, Entry>();
+  let lastParts: readonly unknown[] = [];
+  let lastStreaming = false;
   element.classList.add("ov-turn");
   if (opts.theme) element.dataset.ovTheme = opts.theme;
 
@@ -73,6 +75,8 @@ export function createTurn(element: HTMLElement, options: TurnOptions = {}): Tur
   return {
     element,
     setParts(rawParts, { streaming = false } = {}) {
+      lastParts = rawParts;
+      lastStreaming = streaming;
       const parts = normalizeParts(rawParts);
       const seen = new Set<string>();
       let previous: HTMLElement | null = null;
@@ -118,10 +122,27 @@ export function createTurn(element: HTMLElement, options: TurnOptions = {}): Tur
       }
     },
     update(next) {
+      const before = opts;
       opts = { ...opts, ...next };
       if (opts.theme) element.dataset.ovTheme = opts.theme;
       for (const entry of entries.values()) {
         if (entry.kind === "text") entry.view.update(next);
+      }
+      // Reasoning, tool and diff views take these options when they're
+      // created, so rebuild them and replay the current parts.
+      const rebuild =
+        before.diff !== opts.diff ||
+        before.highlight !== opts.highlight ||
+        before.tools?.label !== opts.tools?.label ||
+        before.tools?.summarize !== opts.tools?.summarize ||
+        before.theme !== opts.theme;
+      if (rebuild) {
+        for (const [key, entry] of [...entries]) {
+          if (entry.kind === "text") continue;
+          destroyEntry(entry);
+          entries.delete(key);
+        }
+        this.setParts(lastParts, { streaming: lastStreaming });
       }
     },
     destroy() {

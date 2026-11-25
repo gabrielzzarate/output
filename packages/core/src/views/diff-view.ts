@@ -3,6 +3,26 @@ import { renderPlainDiff } from "../diff/plain";
 import type { DiffInput, DiffRenderer } from "../diff/types";
 import { escapeHtml } from "../render/markdown";
 
+/** One shared observer tells every diff view when a color scheme changes. */
+const schemeListeners = new Set<() => void>();
+let schemeObserver: MutationObserver | null = null;
+function onSchemeChange(listener: () => void): () => void {
+  if (!schemeObserver && typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+    schemeObserver = new MutationObserver(() => {
+      for (const l of [...schemeListeners]) l();
+    });
+    schemeObserver.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ["data-ov-scheme"] });
+  }
+  schemeListeners.add(listener);
+  return () => {
+    schemeListeners.delete(listener);
+    if (!schemeListeners.size && schemeObserver) {
+      schemeObserver.disconnect();
+      schemeObserver = null;
+    }
+  };
+}
+
 export interface DiffView {
   readonly element: HTMLElement;
   /** Shows the diff. `settled` diffs go to the renderer; live ones use the plain view. */
@@ -24,16 +44,28 @@ export function createDiffView(renderer?: DiffRenderer): DiffView {
   const body = figure.querySelector<HTMLElement>(".ov-diff-body")!;
   let cleanup: (() => void) | null = null;
   let lastKey = "";
+  let lastInput: DiffInput | null = null;
+  let lastSettled = false;
 
   const schemeOf = (): "light" | "dark" | "system" => {
     const scheme = figure.closest<HTMLElement>("[data-ov-scheme]")?.dataset.ovScheme;
     return scheme === "light" || scheme === "dark" ? scheme : "system";
   };
 
-  return {
+  // Re-render a settled diff when its light/dark scheme changes, so the
+  // renderer's token colors match the background.
+  const stopListening = renderer
+    ? onSchemeChange(() => {
+        if (lastInput && lastSettled && figure.isConnected) view.update(lastInput, { settled: true });
+      })
+    : () => {};
+
+  const view: DiffView = {
     element: figure,
     update(input, { settled = true } = {}) {
-      const key = (settled ? "s:" : "l:") + JSON.stringify(input);
+      lastInput = input;
+      lastSettled = settled;
+      const key = (settled ? `s:${renderer ? schemeOf() : ""}:` : "l:") + JSON.stringify(input);
       if (key === lastKey) return;
       lastKey = key;
       const stats = diffStats(input);
@@ -57,10 +89,12 @@ export function createDiffView(renderer?: DiffRenderer): DiffView {
       body.innerHTML = renderPlainDiff(input);
     },
     destroy() {
+      stopListening();
       cleanup?.();
       cleanup = null;
       figure.remove();
     },
   };
+  return view;
 }
 
