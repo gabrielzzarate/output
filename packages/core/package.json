@@ -1,0 +1,46 @@
+{
+  "name": "@output/core",
+  "version": "0.1.0",
+  "description": "Streaming renderer that typesets LLM output: prose, code, and optimal line breaking.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./shiki": {
+      "types": "./dist/shiki.d.ts",
+      "import": "./dist/shiki.js"
+    },
+    "./styles.css": "./src/styles/base.css",
+    "./themes/*": "./src/styles/themes/*"
+  },
+  "files": [
+    "dist",
+    "src/styles"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/shiki.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "hyphen": "^1.14.1",
+    "marked": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/hyphen": "^1.14.0",
+    "jsdom": "^31.0.1",
+    "shiki": "^4.6.0",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.2"
+  },
+  "peerDependencies": {
+    "shiki": "^4.6.0"
+  }
+}

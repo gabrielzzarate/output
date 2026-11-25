@@ -1,0 +1,14 @@
+{
+  "name": "output-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter \"./packages/*\" build",
+    "test": "pnpm --filter \"./packages/*\" test",
+    "typecheck": "pnpm -r typecheck",
+    "dev": "pnpm --filter playground dev",
+    "playground:build": "pnpm --filter playground build"
+  },
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=20" }
+}

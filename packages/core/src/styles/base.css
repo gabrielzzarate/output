@@ -1,0 +1,215 @@
+/*
+ * @output/core base styles.
+ * Every visual decision is a custom property on .ov-output, so a theme is
+ * just a set of overrides. Fonts are not bundled: load the faces you want
+ * (see README) and the stacks below pick them up.
+ */
+.ov-output {
+  /* Type */
+  --ov-font-prose: "Literata Variable", "Literata", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --ov-font-ui: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ov-font-heading: var(--ov-font-ui);
+  --ov-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --ov-size: 1.0625rem;
+  --ov-leading: 1.65;
+  --ov-measure: 40rem;
+  --ov-paragraph-gap: 0.9em;
+  --ov-block-gap: 1.1em;
+  --ov-code-size: 0.84em;
+  --ov-radius: 8px;
+
+  /* Color */
+  --ov-ink: #1d2126;
+  --ov-ink-soft: #5d656e;
+  --ov-ink-faint: #8a929a;
+  --ov-rule: #e1e4e6;
+  --ov-accent: #2b5f8e;
+  --ov-surface: #f4f5f6;
+  --ov-surface-strong: #eceef0;
+  --ov-mark: #fff2b3;
+
+  color: var(--ov-ink);
+  font-family: var(--ov-font-prose);
+  font-size: var(--ov-size);
+  line-height: var(--ov-leading);
+  font-kerning: normal;
+  font-optical-sizing: auto;
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  max-width: var(--ov-measure);
+  overflow-wrap: break-word;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ov-output:not([data-ov-scheme="light"]) {
+    --ov-ink: #e3e6e8;
+    --ov-ink-soft: #a0a8b0;
+    --ov-ink-faint: #737c85;
+    --ov-rule: #2e3339;
+    --ov-accent: #8fb9e2;
+    --ov-surface: #1d2125;
+    --ov-surface-strong: #252a2f;
+    --ov-mark: #4a4218;
+  }
+}
+.ov-output[data-ov-scheme="dark"] {
+  --ov-ink: #e3e6e8;
+  --ov-ink-soft: #a0a8b0;
+  --ov-ink-faint: #737c85;
+  --ov-rule: #2e3339;
+  --ov-accent: #8fb9e2;
+  --ov-surface: #1d2125;
+  --ov-surface-strong: #252a2f;
+  --ov-mark: #4a4218;
+}
+
+/* Blocks */
+.ov-output > .ov-block + .ov-block { margin-top: var(--ov-block-gap); }
+.ov-output > .ov-block[data-ov-type="heading"]:not(:first-child) { margin-top: calc(var(--ov-block-gap) * 1.9); }
+.ov-output > .ov-block[data-ov-type="heading"] + .ov-block { margin-top: calc(var(--ov-block-gap) * 0.55); }
+.ov-output :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, figure, pre, hr, table) { margin: 0; }
+
+/* Prose */
+.ov-output p,
+.ov-output li {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphenate-limit-chars: 6 2 3;
+  text-wrap: pretty;
+}
+.ov-output :where(li, blockquote) > p + p,
+.ov-output li > p + :where(ul, ol) { margin-top: var(--ov-paragraph-gap); }
+
+/* Justification. Paragraphs stay ragged-right until JS has set them with
+   optimal breaks. Browser justification is never used: it goes line by
+   line and leaves rivers, which is worse than a good ragged edge. */
+.ov-output .ov-block p.ov-measuring { white-space: nowrap; text-align: start; hyphens: manual; -webkit-hyphens: manual; }
+.ov-output .ov-block[data-ov-settled] p.ov-justified { white-space: nowrap; text-align: start; hyphens: manual; -webkit-hyphens: manual; text-wrap: nowrap; }
+.ov-output p.ov-justified .ov-br::after { content: "\A"; white-space: pre; }
+.ov-output p.ov-justified .ov-hy::after { content: "\2010\A"; white-space: pre; }
+
+/* Headings: a quieter sans, sized for answers rather than documents. */
+.ov-output :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--ov-font-heading);
+  font-weight: 620;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+  color: var(--ov-ink);
+}
+.ov-output h1 { font-size: 1.5em; letter-spacing: -0.02em; }
+.ov-output h2 { font-size: 1.24em; }
+.ov-output h3 { font-size: 1.06em; }
+.ov-output :where(h4, h5, h6) { font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ov-ink-soft); }
+
+.ov-output strong { font-weight: 640; }
+.ov-output a {
+  color: var(--ov-accent);
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.2em;
+  text-decoration-color: color-mix(in srgb, var(--ov-accent) 45%, transparent);
+}
+.ov-output a:hover { text-decoration-color: currentColor; }
+.ov-output mark { background: var(--ov-mark); color: inherit; padding: 0 0.1em; border-radius: 2px; }
+.ov-output del { color: var(--ov-ink-soft); }
+
+/* Lists: markers hang in the margin so text aligns with paragraphs above. */
+.ov-output :where(ul, ol) { padding-left: 1.35em; }
+.ov-output li + li { margin-top: 0.35em; }
+.ov-output li::marker { color: var(--ov-ink-faint); }
+.ov-output ol > li::marker { font-variant-numeric: tabular-nums; font-family: var(--ov-font-ui); font-size: 0.88em; }
+.ov-output :where(li) > :where(ul, ol) { margin-top: 0.35em; }
+.ov-output li > input[type="checkbox"] { margin: 0 0.45em 0 -1.35em; accent-color: var(--ov-accent); }
+.ov-output li:has(> input[type="checkbox"]) { list-style: none; }
+
+.ov-output blockquote {
+  padding-left: 1.1em;
+  border-left: 2px solid var(--ov-rule);
+  color: var(--ov-ink-soft);
+  font-style: italic;
+}
+
+.ov-output hr {
+  border: 0;
+  height: 1px;
+  width: 4rem;
+  margin-inline: auto;
+  background: var(--ov-rule);
+}
+
+/* Inline code */
+.ov-output :not(pre) > code {
+  font-family: var(--ov-font-mono);
+  font-size: var(--ov-code-size);
+  background: var(--ov-surface);
+  border: 1px solid var(--ov-rule);
+  border-radius: 4px;
+  padding: 0.05em 0.3em;
+  white-space: nowrap;
+  font-variant-ligatures: none;
+}
+
+/* Code blocks */
+.ov-output .ov-code {
+  border: 1px solid var(--ov-rule);
+  border-radius: var(--ov-radius);
+  background: var(--ov-surface);
+  overflow: hidden;
+  font-family: var(--ov-font-mono);
+}
+.ov-output .ov-code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.85rem;
+  border-bottom: 1px solid var(--ov-rule);
+  font-family: var(--ov-font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ov-ink-soft);
+}
+.ov-output .ov-code-lang { text-transform: lowercase; }
+.ov-output .ov-copy {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+}
+.ov-output .ov-copy:hover { background: var(--ov-surface-strong); color: var(--ov-ink); }
+.ov-output .ov-copy:focus-visible { outline: 2px solid var(--ov-accent); outline-offset: 1px; }
+.ov-output .ov-code pre {
+  margin: 0;
+  padding: 0.85rem 1rem 0.95rem;
+  overflow-x: auto;
+  font-size: var(--ov-code-size);
+  line-height: 1.6;
+  tab-size: 2;
+  font-variant-ligatures: none;
+}
+.ov-output .ov-code code { font-family: inherit; }
+.ov-output .ov-code code span { color: var(--shiki-light); font-style: var(--shiki-light-font-style); font-weight: var(--shiki-light-font-weight); }
+@media (prefers-color-scheme: dark) {
+  .ov-output:not([data-ov-scheme="light"]) .ov-code code span { color: var(--shiki-dark); font-style: var(--shiki-dark-font-style); font-weight: var(--shiki-dark-font-weight); }
+}
+.ov-output[data-ov-scheme="dark"] .ov-code code span { color: var(--shiki-dark); font-style: var(--shiki-dark-font-style); font-weight: var(--shiki-dark-font-weight); }
+
+/* Tables */
+.ov-output .ov-table { overflow-x: auto; border: 1px solid var(--ov-rule); border-radius: var(--ov-radius); }
+.ov-output table { border-collapse: collapse; width: 100%; font-family: var(--ov-font-ui); font-size: 0.86em; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.ov-output th, .ov-output td { padding: 0.55em 0.85em; border-bottom: 1px solid var(--ov-rule); text-align: start; vertical-align: top; }
+.ov-output tbody tr:last-child td { border-bottom: 0; }
+.ov-output th { font-weight: 600; font-size: 0.86em; letter-spacing: 0.03em; color: var(--ov-ink-soft); background: var(--ov-surface); }
+
+.ov-output img { max-width: 100%; height: auto; border-radius: var(--ov-radius); }
+
+/* Streaming: new blocks ease in rather than pop. */
+@media (prefers-reduced-motion: no-preference) {
+  .ov-output > .ov-block[data-ov-live] { animation: ov-in 240ms ease-out both; }
+}
+@keyframes ov-in { from { opacity: 0.35; } to { opacity: 1; } }
