@@ -1,0 +1,14 @@
+/* Compact: a sans for dense chat sidebars and coding harnesses. Still
+   hyphenated and well spaced, but sized for narrow panes. */
+.ov-output[data-ov-theme="compact"] {
+  --ov-font-prose: var(--ov-font-ui);
+  --ov-size: 0.9375rem;
+  --ov-leading: 1.55;
+  --ov-measure: 46rem;
+  --ov-block-gap: 0.85em;
+  --ov-code-size: 0.86em;
+  letter-spacing: -0.003em;
+}
+.ov-output[data-ov-theme="compact"] h1 { font-size: 1.3em; }
+.ov-output[data-ov-theme="compact"] h2 { font-size: 1.14em; }
+.ov-output[data-ov-theme="compact"] h3 { font-size: 1em; }
