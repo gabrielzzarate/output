@@ -25,6 +25,7 @@ export function App() {
   const [width, setWidth] = useState(640);
   const [theme, setTheme] = useState<"reader" | "compact">("reader");
   const [justify, setJustify] = useState(true);
+  const [track, setTrack] = useState(true);
   const [compare, setCompare] = useState(true);
   const [scheme, setScheme] = useState<Scheme>(initialScheme);
   const [highlight, setHighlight] = useState<Highlighter>();
@@ -144,6 +145,10 @@ export function App() {
           <input type="checkbox" id="justify" checked={justify} onChange={(e) => setJustify(e.target.checked)} />
           <span>Justify</span>
         </label>
+        <label className="pg-check" title="Spread some of a loose line's extra space across its letters">
+          <input type="checkbox" id="track" checked={track} disabled={!justify} onChange={(e) => setTrack(e.target.checked)} />
+          <span>Track loose lines</span>
+        </label>
         <label className="pg-check">
           <input type="checkbox" id="compare" checked={compare} onChange={(e) => setCompare(e.target.checked)} />
           <span>Compare</span>
@@ -167,6 +172,7 @@ export function App() {
                 streaming={streaming}
                 theme={theme}
                 justify={justify ? "auto" : false}
+                letterSpacing={track ? undefined : 0}
                 scheme={scheme}
                 highlight={highlight}
                 diff={diffRenderer}
@@ -177,6 +183,7 @@ export function App() {
                 streaming={streaming}
                 theme={theme}
                 justify={justify ? "auto" : false}
+                letterSpacing={track ? undefined : 0}
                 scheme={scheme}
                 highlight={highlight}
                 diff={diffRenderer}

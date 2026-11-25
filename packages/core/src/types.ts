@@ -27,4 +27,9 @@ export interface OutputOptions {
   lang?: string;
   /** Narrowest column, in ems, that "auto" will justify. Defaults to 22. */
   minJustifyWidth?: number;
+  /**
+   * Most a justified line may track out each letter, in ems, to keep word
+   * gaps from getting too wide. Defaults to 0.012; 0 turns it off.
+   */
+  letterSpacing?: number;
 }
