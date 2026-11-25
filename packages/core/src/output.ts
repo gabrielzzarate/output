@@ -4,6 +4,8 @@ import { markdown, renderTokens } from "./render/markdown";
 import { JustifyScheduler } from "./linebreak/scheduler";
 import { englishHyphenator } from "./linebreak/hyphenate";
 import type { OutputOptions } from "./types";
+import { isPatch } from "./diff/patch";
+import { createDiffView, type DiffView } from "./views/diff-view";
 
 export interface Output {
   /** The root element the output renders into. */
@@ -57,6 +59,9 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
   let pendingChunks = "";
   let pendingEnd = false;
   const pendingWork = new Set<Promise<unknown>>();
+  const diffViews = new Map<HTMLElement, DiffView>();
+  const rawOf = new WeakMap<HTMLElement, string>();
+  const liveHtml = new WeakMap<HTMLElement, string>();
 
   const scheduler = new JustifyScheduler(element, {
     hyphenate: opts.hyphenate === false ? false : (opts.hyphenate ?? englishHyphenator),
@@ -113,7 +118,23 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
       const wrapper = live?.id === update.live.id ? live.wrapper : createWrapper(update.live);
       wrapper.dataset.ovType = update.live.type;
       const html = renderLive(update.live);
-      if (wrapper.innerHTML !== html) wrapper.innerHTML = html;
+      const existing = diffViews.get(wrapper);
+      if (existing && wrapper.contains(existing.element)) {
+        const probe = document.createElement("div");
+        probe.innerHTML = html;
+        const figure = probe.querySelector<HTMLElement>(".ov-code");
+        if (figure) {
+          wrapper.replaceChildren(figure);
+          upgradeDiff(wrapper, figure, false);
+        } else {
+          wrapper.innerHTML = html;
+        }
+      } else if (liveHtml.get(wrapper) !== html) {
+        liveHtml.set(wrapper, html);
+        wrapper.innerHTML = html;
+        const figure = wrapper.querySelector<HTMLElement>(".ov-code");
+        if (figure) upgradeDiff(wrapper, figure, false);
+      }
       live = { wrapper, id: update.live.id };
     } else if (live) {
       live.wrapper.remove();
@@ -145,20 +166,42 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
       wrapper = createWrapper(block);
     }
     delete wrapper.dataset.ovLive;
+    liveHtml.delete(wrapper);
     wrapper.dataset.ovType = block.type;
     wrapper.dataset.ovSettled = "";
     wrapper.innerHTML = renderTokens([block.token]);
+    rawOf.set(wrapper, block.raw);
     blocks.push(wrapper);
     enhance(wrapper);
   }
 
   function enhance(wrapper: HTMLElement) {
+    for (const figure of wrapper.querySelectorAll<HTMLElement>(".ov-code")) {
+      if (upgradeDiff(wrapper, figure, true)) return;
+    }
     if (opts.highlight) {
       for (const figure of wrapper.querySelectorAll<HTMLElement>(".ov-code")) highlight(figure);
     }
     if (opts.justify !== false) {
       for (const p of wrapper.querySelectorAll<HTMLElement>("p")) scheduler.add(p);
     }
+  }
+
+  /** Shows a ```diff fence that holds a real patch as a diff view. */
+  function upgradeDiff(wrapper: HTMLElement, figure: HTMLElement, settled: boolean): boolean {
+    const lang = figure.dataset.ovLang;
+    if (lang !== "diff" && lang !== "patch") return false;
+    const patch = figure.querySelector("code")?.textContent ?? "";
+    if (!isPatch(patch)) return false;
+    let view = diffViews.get(wrapper);
+    if (!view) {
+      view = createDiffView(opts.diff);
+      diffViews.set(wrapper, view);
+    }
+    figure.replaceWith(view.element);
+    view.update({ patch: patch.endsWith("\n") ? patch : patch + "\n" }, { settled });
+    wrapper.dataset.ovType = "diff";
+    return true;
   }
 
   function highlight(figure: HTMLElement) {
@@ -225,6 +268,8 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
         frame = null;
       }
       scheduler.clear();
+      for (const view of diffViews.values()) view.destroy();
+      diffViews.clear();
       for (const wrapper of blocks) wrapper.remove();
       blocks.length = 0;
       live?.wrapper.remove();
@@ -238,6 +283,20 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
       const before = opts;
       opts = { ...opts, ...next };
       applyRootAttributes();
+      if (before.diff !== opts.diff) {
+        for (const [wrapper, view] of diffViews) {
+          view.destroy();
+          diffViews.delete(wrapper);
+          const block = blocks.indexOf(wrapper);
+          if (block !== -1) {
+            const raw = rawOf.get(wrapper);
+            if (raw !== undefined) {
+              wrapper.innerHTML = renderTokens(markdown.lexer(raw));
+              enhance(wrapper);
+            }
+          }
+        }
+      }
       if (before.justify !== opts.justify || before.hyphenate !== opts.hyphenate || before.highlight !== opts.highlight || before.minJustifyWidth !== opts.minJustifyWidth) {
         if (before.highlight !== opts.highlight) {
           for (const wrapper of blocks) {

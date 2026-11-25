@@ -4,7 +4,8 @@
  * just a set of overrides. Fonts are not bundled: load the faces you want
  * (see README) and the stacks below pick them up.
  */
-.ov-output {
+.ov-output,
+.ov-turn {
   /* Type */
   --ov-font-prose: "Literata Variable", "Literata", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --ov-font-ui: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -27,6 +28,12 @@
   --ov-surface: #f4f5f6;
   --ov-surface-strong: #eceef0;
   --ov-mark: #fff2b3;
+  --ov-add: #1f7a4d;
+  --ov-add-wash: #e4f4ea;
+  --ov-del: #b23b3b;
+  --ov-del-wash: #fbe8e6;
+  --ov-running: #b07a12;
+  --ov-diff-bg: #ffffff;
 
   color: var(--ov-ink);
   font-family: var(--ov-font-prose);
@@ -42,7 +49,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .ov-output:not([data-ov-scheme="light"]) {
+  .ov-output:not([data-ov-scheme="light"], [data-ov-scheme="light"] .ov-output),
+  .ov-turn:not([data-ov-scheme="light"]) {
     --ov-ink: #e3e6e8;
     --ov-ink-soft: #a0a8b0;
     --ov-ink-faint: #737c85;
@@ -51,9 +59,17 @@
     --ov-surface: #1d2125;
     --ov-surface-strong: #252a2f;
     --ov-mark: #4a4218;
+    --ov-add: #6fcf9a;
+    --ov-add-wash: #16291e;
+    --ov-del: #ef8a84;
+    --ov-del-wash: #301c1b;
+    --ov-running: #e0b04a;
+    --ov-diff-bg: #16191c;
   }
 }
-.ov-output[data-ov-scheme="dark"] {
+.ov-output[data-ov-scheme="dark"],
+.ov-turn[data-ov-scheme="dark"],
+.ov-turn[data-ov-scheme="dark"] .ov-output {
   --ov-ink: #e3e6e8;
   --ov-ink-soft: #a0a8b0;
   --ov-ink-faint: #737c85;
@@ -195,9 +211,12 @@
 .ov-output .ov-code code { font-family: inherit; }
 .ov-output .ov-code code span { color: var(--shiki-light); font-style: var(--shiki-light-font-style); font-weight: var(--shiki-light-font-weight); }
 @media (prefers-color-scheme: dark) {
-  .ov-output:not([data-ov-scheme="light"]) .ov-code code span { color: var(--shiki-dark); font-style: var(--shiki-dark-font-style); font-weight: var(--shiki-dark-font-weight); }
+  .ov-output:not([data-ov-scheme="light"], [data-ov-scheme="light"] .ov-output) .ov-code code span,
+  .ov-turn:not([data-ov-scheme="light"]) .ov-tool-section code span { color: var(--shiki-dark); font-style: var(--shiki-dark-font-style); font-weight: var(--shiki-dark-font-weight); }
 }
-.ov-output[data-ov-scheme="dark"] .ov-code code span { color: var(--shiki-dark); font-style: var(--shiki-dark-font-style); font-weight: var(--shiki-dark-font-weight); }
+.ov-output[data-ov-scheme="dark"] .ov-code code span,
+[data-ov-scheme="dark"] .ov-output .ov-code code span,
+.ov-turn[data-ov-scheme="dark"] .ov-tool-section code span { color: var(--shiki-dark); font-style: var(--shiki-dark-font-style); font-weight: var(--shiki-dark-font-weight); }
 
 /* Tables */
 .ov-output .ov-table { overflow-x: auto; border: 1px solid var(--ov-rule); border-radius: var(--ov-radius); }
@@ -213,3 +232,122 @@
   .ov-output > .ov-block[data-ov-live] { animation: ov-in 240ms ease-out both; }
 }
 @keyframes ov-in { from { opacity: 0.35; } to { opacity: 1; } }
+
+/* ───────────── Turns: text, reasoning, tool calls, diffs ───────────── */
+.ov-turn { display: flex; flex-direction: column; gap: 1.1em; max-width: var(--ov-measure); }
+.ov-turn .ov-output { max-width: none; }
+.ov-turn .ov-tool { margin-block: -0.35em; }
+
+/* Diffs */
+.ov-output .ov-diff, .ov-turn .ov-diff {
+  margin: 0;
+  border: 1px solid var(--ov-rule);
+  border-radius: var(--ov-radius);
+  overflow: hidden;
+  font-family: var(--ov-font-mono);
+  background: var(--ov-surface);
+  --diffs-font-family: var(--ov-font-mono);
+  --diffs-header-font-family: var(--ov-font-ui);
+}
+.ov-diff-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  padding: 0.4rem 0.85rem;
+  border-bottom: 1px solid var(--ov-rule);
+  font-family: var(--ov-font-mono);
+  font-size: 0.74rem;
+  color: var(--ov-ink-soft);
+  background: var(--ov-surface);
+}
+.ov-diff-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--ov-ink); }
+.ov-diff-stat { display: flex; gap: 0.5em; font-variant-numeric: tabular-nums; flex: none; }
+.ov-diff-add-n { color: var(--ov-add); }
+.ov-diff-del-n { color: var(--ov-del); }
+.ov-diff-body { font-size: 0.8rem; background: var(--ov-diff-bg); }
+.ov-diff-plain { overflow-x: auto; padding-block: 0.35rem; }
+.ov-diff-plain table { border-collapse: collapse; width: 100%; font-family: var(--ov-font-mono); font-size: 1em; line-height: 1.6; }
+.ov-diff-plain td { padding: 0 0.85rem 0 0.5rem; white-space: pre; border: 0; }
+.ov-diff-plain td.ov-diff-n { width: 1%; padding: 0 0.35rem; text-align: right; color: var(--ov-ink-faint); user-select: none; font-size: 0.92em; }
+.ov-diff-plain tr td:first-child { border-left: 3px solid transparent; }
+.ov-diff-plain tr.ov-diff-add td { background: var(--ov-add-wash); }
+.ov-diff-plain tr.ov-diff-add td:first-child { border-left-color: var(--ov-add); }
+.ov-diff-plain tr.ov-diff-del td { background: var(--ov-del-wash); }
+.ov-diff-plain tr.ov-diff-del td:first-child { border-left-color: var(--ov-del); }
+.ov-diff-plain tr.ov-diff-sep td { height: 0.5rem; background: var(--ov-surface-strong); }
+.ov-diff[data-ov-state="live"] .ov-diff-bar::after { content: ""; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: var(--ov-running); margin-left: 0.25rem; }
+.ov-pierre + .ov-pierre { border-top: 1px solid var(--ov-rule); }
+
+/* Tool calls */
+.ov-tool { display: flex; flex-direction: column; gap: 0.5rem; font-family: var(--ov-font-ui); }
+.ov-tool-details { border-radius: var(--ov-radius); }
+.ov-tool-row {
+  display: flex; align-items: center; gap: 0.55rem;
+  min-width: 0;
+  padding: 0.3rem 0.55rem 0.3rem 0.45rem;
+  margin-inline: -0.45rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--ov-ink-soft);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.ov-tool-row::-webkit-details-marker { display: none; }
+.ov-tool-row:hover { background: var(--ov-surface); }
+.ov-tool-row:focus-visible { outline: 2px solid var(--ov-accent); outline-offset: 1px; }
+.ov-tool-status { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--ov-add); }
+.ov-tool-status[data-ov-state="pending"], .ov-tool-status[data-ov-state="running"] { background: var(--ov-running); animation: ov-pulse 1.1s ease-in-out infinite; }
+.ov-tool-status[data-ov-state="error"] { background: var(--ov-del); }
+.ov-tool-name { flex: none; font-weight: 600; color: var(--ov-ink); }
+.ov-tool-arg { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--ov-font-mono); font-size: 0.94em; }
+.ov-tool-meta { margin-left: auto; flex: none; font-variant-numeric: tabular-nums; color: var(--ov-ink-faint); }
+.ov-tool[data-ov-state="error"] .ov-tool-meta { color: var(--ov-del); }
+.ov-tool-chevron { flex: none; width: 0.4rem; height: 0.4rem; border-right: 1.5px solid var(--ov-ink-faint); border-bottom: 1.5px solid var(--ov-ink-faint); transform: rotate(-45deg); transition: transform 160ms ease; margin-right: 0.15rem; }
+.ov-tool-details[open] .ov-tool-chevron { transform: rotate(45deg); }
+.ov-tool-detail { display: flex; flex-direction: column; gap: 0.6rem; margin: 0.4rem 0 0.2rem 1.05rem; padding-left: 0.85rem; border-left: 1px solid var(--ov-rule); }
+.ov-tool-section h4 { margin: 0 0 0.3rem; font-family: var(--ov-font-ui); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ov-ink-faint); }
+.ov-tool-section pre { margin: 0; max-height: 18rem; overflow: auto; padding: 0.6rem 0.75rem; border-radius: 6px; background: var(--ov-surface); font-family: var(--ov-font-mono); font-size: 0.75rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.ov-tool-section code span { color: var(--shiki-light); }
+.ov-tool-error pre { color: var(--ov-del); background: var(--ov-del-wash); }
+.ov-tool-empty { margin: 0; font-size: 0.78rem; color: var(--ov-ink-faint); }
+.ov-tool-diff { margin-left: 1.05rem; }
+
+/* Reasoning */
+.ov-reasoning { font-family: var(--ov-font-ui); }
+.ov-reasoning > summary {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.2rem 0.5rem 0.2rem 0.45rem;
+  margin-left: -0.45rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--ov-ink-soft);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.ov-reasoning > summary::-webkit-details-marker { display: none; }
+.ov-reasoning > summary:hover { background: var(--ov-surface); }
+.ov-reasoning > summary:focus-visible { outline: 2px solid var(--ov-accent); outline-offset: 1px; }
+.ov-reasoning > summary::after { content: ""; width: 0.35rem; height: 0.35rem; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform 160ms ease; opacity: 0.7; }
+.ov-reasoning[open] > summary::after { transform: rotate(45deg) translateY(-0.1rem); }
+.ov-reasoning[data-ov-state="streaming"] .ov-reasoning-label {
+  background: linear-gradient(90deg, var(--ov-ink-soft) 0%, var(--ov-ink-faint) 40%, var(--ov-ink-soft) 80%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: ov-shimmer 1.8s linear infinite;
+}
+.ov-reasoning-body { margin: 0.45rem 0 0.2rem 0.2rem; padding-left: 0.95rem; border-left: 1px solid var(--ov-rule); }
+.ov-reasoning-body .ov-output {
+  --ov-font-prose: var(--ov-font-ui);
+  --ov-size: 0.84rem;
+  --ov-leading: 1.55;
+  --ov-block-gap: 0.7em;
+  color: var(--ov-ink-soft);
+}
+
+@keyframes ov-pulse { 50% { opacity: 0.35; } }
+@keyframes ov-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .ov-tool-status, .ov-reasoning-label { animation: none !important; }
+  .ov-tool-chevron, .ov-reasoning > summary::after { transition: none; }
+}
