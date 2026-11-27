@@ -13,6 +13,7 @@ It is built for streaming. Text that is still arriving stays ragged-right and ne
 | [`@output/core`](packages/core) | Framework-free renderer: streaming block parser, markdown rendering, themes, optimal line breaking. |
 | [`@output/react`](packages/react) | `<Output>` component for React 18+. |
 | [`playground`](apps/playground) | Replays recorded answers side by side against plain react-markdown. |
+| [`docs`](apps/docs) | The documentation site: guides, API reference, and live examples, typeset by the library itself. |
 
 ## Quick start
 
@@ -120,6 +121,7 @@ Only settled code blocks are highlighted. Code that is still streaming shows as 
 ```bash
 pnpm install
 pnpm dev          # playground at http://localhost:5173
+pnpm docs         # docs site at http://localhost:5173
 pnpm test
 pnpm typecheck
 pnpm build

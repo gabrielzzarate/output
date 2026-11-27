@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "declaration": false,
+    "types": ["vite/client"],
+    "paths": {
+      "@output/core": ["../../packages/core/src/index.ts"],
+      "@output/core/shiki": ["../../packages/core/src/shiki.ts"],
+      "@output/core/diffs": ["../../packages/core/src/diffs.ts"],
+      "@output/react": ["../../packages/react/src/index.tsx"]
+    }
+  },
+  "include": ["src"]
+}

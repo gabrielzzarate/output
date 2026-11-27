@@ -18,3 +18,4 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: pnpm playground:build
+      - run: pnpm docs:build
