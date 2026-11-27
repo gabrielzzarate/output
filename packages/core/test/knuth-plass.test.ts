@@ -68,3 +68,30 @@ describe("breakLines", () => {
     expect(breakLines(items, 8, { tolerance: 2 })?.[0]?.position).toBe(3);
   });
 });
+
+import { distributeSlack } from "../src/linebreak/justify";
+
+describe("distributeSlack", () => {
+  it("shares slack between word gaps and letters in proportion to their room", () => {
+    // 10 gaps × 2px and 100 letters × 0.2px: 20px of room each, so half and half.
+    const s = distributeSlack(8, 10, 2, 100, 0.2);
+    expect(s.letter).toBeCloseTo(0.04);
+    expect(s.word).toBeCloseTo(0.4);
+    expect(s.word * 10 + s.letter * 100).toBeCloseTo(8);
+  });
+
+  it("puts everything in the gaps when letter spacing is off", () => {
+    expect(distributeSlack(6, 3, 2, 40, 0)).toEqual({ word: 2, letter: 0 });
+  });
+
+  it("tracks a one-word line, up to the letter limit", () => {
+    expect(distributeSlack(1, 0, 2, 10, 0.2).letter).toBeCloseTo(0.1);
+    expect(distributeSlack(5, 0, 2, 10, 0.2).letter).toBeCloseTo(0.2);
+  });
+
+  it("caps letters at their limit and gives the rest to the gaps", () => {
+    const s = distributeSlack(100, 10, 2, 50, 0.2);
+    expect(s.letter).toBeCloseTo(0.2);
+    expect(s.word * 10 + s.letter * 50).toBeCloseTo(100);
+  });
+});

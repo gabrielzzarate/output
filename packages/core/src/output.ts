@@ -38,7 +38,18 @@ const defaults = {
   justify: "auto" as "auto" | boolean,
   lang: "en",
   minJustifyWidth: 22,
+  letterSpacing: 0.012,
 };
+
+/**
+ * Fills in defaults for options that are missing or explicitly undefined,
+ * as they are when a React prop isn't set.
+ */
+function withDefaults(options: OutputOptions): OutputOptions & typeof defaults {
+  const out: Record<string, unknown> = { ...options };
+  for (const [key, value] of Object.entries(defaults)) if (out[key] === undefined) out[key] = value;
+  return out as unknown as OutputOptions & typeof defaults;
+}
 
 /**
  * Renders a stream of model output into `element`.
@@ -50,7 +61,7 @@ const defaults = {
  * ```
  */
 export function createOutput(element: HTMLElement, options: OutputOptions = {}): Output {
-  let opts = { ...defaults, ...options };
+  let opts = withDefaults({ ...options });
   let stream = new BlockStream();
   let ended = false;
   let live: { wrapper: HTMLElement; id: number } | null = null;
@@ -67,6 +78,7 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
   const scheduler = new JustifyScheduler(element, {
     hyphenate: opts.hyphenate === false ? false : (opts.hyphenate ?? englishHyphenator),
     minWidthEm: opts.minJustifyWidth,
+    letterSpacing: opts.letterSpacing,
   });
 
   element.classList.add("ov-output");
@@ -78,6 +90,7 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
     element.dataset.ovJustify = String(opts.justify);
     if (!element.getAttribute("lang")) element.setAttribute("lang", opts.lang);
     scheduler.options.minWidthEm = opts.justify === true ? 0 : opts.minJustifyWidth;
+    scheduler.options.letterSpacing = opts.letterSpacing;
     scheduler.options.hyphenate = opts.hyphenate === false ? false : (opts.hyphenate ?? englishHyphenator);
   }
 
@@ -277,7 +290,7 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
     },
     update(next) {
       const before = opts;
-      opts = { ...opts, ...next };
+      opts = withDefaults({ ...opts, ...next });
       applyRootAttributes();
       if (before.diff !== opts.diff) {
         // Copy the keys first: re-rendering adds fresh views to the map.
@@ -294,7 +307,7 @@ export function createOutput(element: HTMLElement, options: OutputOptions = {}):
           }
         }
       }
-      if (before.justify !== opts.justify || before.hyphenate !== opts.hyphenate || before.highlight !== opts.highlight || before.minJustifyWidth !== opts.minJustifyWidth) {
+      if (before.justify !== opts.justify || before.hyphenate !== opts.hyphenate || before.highlight !== opts.highlight || before.minJustifyWidth !== opts.minJustifyWidth || before.letterSpacing !== opts.letterSpacing) {
         if (before.highlight !== opts.highlight) {
           for (const wrapper of blocks) {
             const fresh = document.createElement("div");

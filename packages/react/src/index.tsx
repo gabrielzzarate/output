@@ -35,7 +35,7 @@ const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayout
  * ```
  */
 export const Output = forwardRef<OutputHandle | null, OutputProps>(function Output(
-  { source, streaming = false, scheme = "auto", className, style, onDone, theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth },
+  { source, streaming = false, scheme = "auto", className, style, onDone, theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth, letterSpacing },
   ref,
 ) {
   const elementRef = useRef<HTMLDivElement>(null);
@@ -44,7 +44,7 @@ export const Output = forwardRef<OutputHandle | null, OutputProps>(function Outp
   onDoneRef.current = onDone;
 
   useIsoLayoutEffect(() => {
-    const handle = createOutput(elementRef.current!, { theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth });
+    const handle = createOutput(elementRef.current!, { theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth, letterSpacing });
     handleRef.current = handle;
     return () => {
       handle.destroy();
@@ -58,8 +58,8 @@ export const Output = forwardRef<OutputHandle | null, OutputProps>(function Outp
   useImperativeHandle(ref, () => handleRef.current!, []);
 
   useIsoLayoutEffect(() => {
-    handleRef.current?.update({ theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth });
-  }, [theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth]);
+    handleRef.current?.update({ theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth, letterSpacing });
+  }, [theme, justify, hyphenate, highlight, diff, lang, minJustifyWidth, letterSpacing]);
 
   // String sources: diff against what's already rendered.
   useIsoLayoutEffect(() => {
